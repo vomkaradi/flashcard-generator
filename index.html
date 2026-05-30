@@ -1,489 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flashcard Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --ink: #1a1a18;
-    --paper: #f5f1e8;
-    --cream: #ede8d8;
-    --accent: #c8472b;
-    --accent-dark: #9e3520;
-    --muted: #7a7568;
-    --border: #d4cebb;
-    --card-front: #fff8ee;
-    --card-back: #1a1a18;
-  }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--paper);
-    color: var(--ink);
-    min-height: 100vh;
-    padding: 2rem 1rem;
-  }
-
-  .grain {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    opacity: 0.5;
-  }
-
-  .wrap { max-width: 680px; margin: 0 auto; position: relative; z-index: 1; }
-
-  header { text-align: center; margin-bottom: 2.5rem; }
-  header h1 {
-    font-family: 'Instrument Serif', serif;
-    font-size: clamp(2.2rem, 6vw, 3.4rem);
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-  }
-  header h1 em { font-style: italic; color: var(--accent); }
-  header p { color: var(--muted); font-size: 0.95rem; margin-top: 0.5rem; font-weight: 300; }
-
-  .card-ui {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.75rem;
-    box-shadow: 0 2px 0 var(--border);
-  }
-
-  label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  textarea, input[type="password"], input[type="number"] {
-    width: 100%;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem;
-    background: var(--paper);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    color: var(--ink);
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  textarea:focus, input:focus { border-color: var(--accent); }
-  textarea { min-height: 180px; line-height: 1.6; }
-
-  .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 1rem; align-items: end; }
-
-  .field { margin-bottom: 1rem; }
-  .field:last-child { margin-bottom: 0; }
-
-  .hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
-
-  .btn {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 500;
-    padding: 0.7rem 1.5rem;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
-  .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-ghost {
-    background: transparent;
-    color: var(--ink);
-    border: 1px solid var(--border);
-  }
-  .btn-ghost:hover { background: var(--cream); }
-
-  /* Loading */
-  #loading { display: none; text-align: center; padding: 2rem; }
-  .spinner {
-    width: 36px; height: 36px;
-    border: 2.5px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 1rem;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #loading p { color: var(--muted); font-size: 0.9rem; }
-
-  /* Error */
-  .error-box {
-    display: none;
-    background: #fff0ee;
-    border: 1px solid #f5c4b8;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    color: var(--accent-dark);
-    font-size: 0.875rem;
-    margin-top: 1rem;
-  }
-
-  /* Flashcard section */
-  #cards-section { display: none; margin-top: 2rem; }
-
-  .progress-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-  }
-  .progress-label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
-  .progress-bar {
-    flex: 1; height: 3px;
-    background: var(--border);
-    border-radius: 99px;
-    margin: 0 1rem;
-    overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 99px;
-    transition: width 0.3s;
-  }
-
-  /* 3D card flip */
-  .flip-scene {
-    perspective: 1000px;
-    height: 260px;
-    cursor: pointer;
-    margin-bottom: 1.25rem;
-  }
-  .flip-card {
-    width: 100%; height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .flip-card.flipped { transform: rotateY(180deg); }
-
-  .flip-front, .flip-back {
-    position: absolute; inset: 0;
-    backface-visibility: hidden;
-    border-radius: 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    text-align: center;
-  }
-  .flip-front {
-    background: var(--card-front);
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 0 var(--border);
-  }
-  .flip-back {
-    background: var(--card-back);
-    transform: rotateY(180deg);
-    box-shadow: 0 4px 0 #000;
-  }
-  .face-label {
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-  }
-  .flip-front .face-label { color: var(--muted); }
-  .flip-back .face-label { color: #6b6b60; }
-
-  .card-text {
-    font-family: 'Instrument Serif', serif;
-    font-size: clamp(1.1rem, 3vw, 1.4rem);
-    line-height: 1.4;
-  }
-  .flip-front .card-text { color: var(--ink); }
-  .flip-back .card-text { color: #f5f1e8; }
-
-  .flip-hint {
-    font-size: 0.72rem;
-    color: var(--muted);
-    margin-top: 1rem;
-  }
-  .flip-back .flip-hint { color: #5a5a52; }
-
-  .nav-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-  }
-  .nav-btn {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: white;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .nav-btn:hover:not(:disabled) { background: var(--cream); border-color: var(--ink); }
-  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .restart-row { text-align: center; margin-top: 1.5rem; }
-  .restart-link {
-    font-size: 0.8rem;
-    color: var(--muted);
-    text-decoration: underline;
-    cursor: pointer;
-    background: none;
-    border: none;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .restart-link:hover { color: var(--ink); }
-
-  /* Keyboard hint */
-  .kbd-hint {
-    text-align: center;
-    font-size: 0.72rem;
-    color: var(--muted);
-    margin-top: 0.75rem;
-  }
-  kbd {
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: var(--ink);
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="grain"></div>
-<div class="wrap">
-  <header>
-    <h1>Flash<em>card</em><br>Generator</h1>
-    <p>Paste any text. Get instant study cards powered by AI.</p>
-  </header>
+  <div class="grain"></div>
+  <div class="wrap">
 
-  <!-- Input form -->
-  <div class="card-ui" id="input-section">
-    <div class="field">
-      <label for="api-key">Anthropic API Key</label>
-      <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
-      <p class="hint">Stays in your browser only — never sent anywhere except Anthropic's API.</p>
-    </div>
+    <header>
+      <h1>Flash<em>card</em><br>Generator</h1>
+      <p>Paste any text. Get instant study cards powered by AI.</p>
+    </header>
 
-    <div class="field">
-      <label for="notes">Your notes or text</label>
-      <textarea id="notes" placeholder="Paste a paragraph from your textbook, Wikipedia article, lecture notes — anything you want to study..."></textarea>
-    </div>
-
-    <div class="row">
-      <div>
-        <label for="count">Number of cards</label>
-        <input type="number" id="count" value="8" min="3" max="20" style="width:80px">
+    <!-- Input form -->
+    <div class="card-ui" id="input-section">
+      <div class="field">
+        <label for="api-key">Anthropic API Key</label>
+        <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+        <p class="hint">Stays in your browser only — never sent anywhere except Anthropic's API.</p>
       </div>
-      <button class="btn btn-primary" id="generate-btn" onclick="generateCards()">Generate cards →</button>
+
+      <div class="field">
+        <label for="notes">Your notes or text</label>
+        <textarea id="notes" placeholder="Paste a paragraph from your textbook, Wikipedia article, lecture notes — anything you want to study..."></textarea>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="count">Number of cards</label>
+          <input type="number" id="count" value="8" min="3" max="20" style="width:80px">
+        </div>
+        <button class="btn btn-primary" id="generate-btn" onclick="generateCards()">Generate cards →</button>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
     </div>
 
-    <div class="error-box" id="error-box"></div>
-  </div>
-
-  <!-- Loading -->
-  <div id="loading">
-    <div class="spinner"></div>
-    <p>Generating your flashcards…</p>
-  </div>
-
-  <!-- Cards -->
-  <div id="cards-section">
-    <div class="progress-row">
-      <span class="progress-label" id="progress-label">1 / 8</span>
-      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:12.5%"></div></div>
-      <span class="progress-label" id="score-label">0 known</span>
+    <!-- Loading -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>Generating your flashcards…</p>
     </div>
 
-    <div class="flip-scene" onclick="flipCard()" id="flip-scene">
-      <div class="flip-card" id="flip-card">
-        <div class="flip-front">
-          <span class="face-label">Question</span>
-          <p class="card-text" id="question-text"></p>
-          <p class="flip-hint">tap to reveal answer</p>
+    <!-- Flashcards -->
+    <div id="cards-section">
+      <div class="progress-row">
+        <span class="progress-label" id="progress-label">1 / 8</span>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:12.5%"></div>
         </div>
-        <div class="flip-back">
-          <span class="face-label">Answer</span>
-          <p class="card-text" id="answer-text"></p>
-          <p class="flip-hint">tap to flip back</p>
+        <span class="progress-label" id="score-label">0 known</span>
+      </div>
+
+      <div class="flip-scene" onclick="flipCard()" id="flip-scene">
+        <div class="flip-card" id="flip-card">
+          <div class="flip-front">
+            <span class="face-label">Question</span>
+            <p class="card-text" id="question-text"></p>
+            <p class="flip-hint">tap to reveal answer</p>
+          </div>
+          <div class="flip-back">
+            <span class="face-label">Answer</span>
+            <p class="card-text" id="answer-text"></p>
+            <p class="flip-hint">tap to flip back</p>
+          </div>
         </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="nav-btn" id="prev-btn" onclick="navigate(-1)" title="Previous">←</button>
+        <button class="btn btn-ghost" id="knew-btn" onclick="markKnew()" style="min-width:120px">✓ Got it</button>
+        <button class="nav-btn" id="next-btn" onclick="navigate(1)" title="Next">→</button>
+      </div>
+
+      <p class="kbd-hint">
+        <kbd>Space</kbd> flip &nbsp;·&nbsp;
+        <kbd>←</kbd><kbd>→</kbd> navigate &nbsp;·&nbsp;
+        <kbd>K</kbd> mark known
+      </p>
+
+      <div class="restart-row">
+        <button class="restart-link" onclick="restart()">← start over with new text</button>
       </div>
     </div>
 
-    <div class="nav-row">
-      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)" title="Previous">←</button>
-      <button class="btn btn-ghost" id="knew-btn" onclick="markKnew()" style="min-width:120px">✓ Got it</button>
-      <button class="nav-btn" id="next-btn" onclick="navigate(1)" title="Next">→</button>
-    </div>
-
-    <p class="kbd-hint"><kbd>Space</kbd> flip &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> navigate &nbsp;·&nbsp; <kbd>K</kbd> mark known</p>
-
-    <div class="restart-row">
-      <button class="restart-link" onclick="restart()">← start over with new text</button>
-    </div>
   </div>
-</div>
-
-<script>
-let cards = [];
-let current = 0;
-let isFlipped = false;
-let knownCount = 0;
-
-async function generateCards() {
-  const apiKey = document.getElementById('api-key').value.trim();
-  const notes = document.getElementById('notes').value.trim();
-  const count = parseInt(document.getElementById('count').value) || 8;
-  const errBox = document.getElementById('error-box');
-
-  errBox.style.display = 'none';
-
-  if (!apiKey) return showError('Please enter your Anthropic API key.');
-  if (!apiKey.startsWith('sk-ant-')) return showError('That doesn\'t look like a valid Anthropic API key (should start with sk-ant-).');
-  if (notes.length < 50) return showError('Please paste at least a paragraph of text to generate cards from.');
-
-  document.getElementById('generate-btn').disabled = true;
-  document.getElementById('input-section').style.opacity = '0.5';
-  document.getElementById('loading').style.display = 'block';
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{
-          role: 'user',
-          content: `You are a study assistant. Read the following text and create exactly ${count} flashcards to help a student study the key concepts.
-
-Return ONLY a valid JSON array — no markdown, no explanation, no backticks. Each object must have exactly two fields: "question" (a clear, specific question) and "answer" (a concise but complete answer, 1–3 sentences max).
-
-Text to study:
-${notes}`
-        }]
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `API error ${response.status}`);
-    }
-
-    const data = await response.json();
-    const raw = data.content[0].text.trim();
-    const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
-    cards = JSON.parse(cleaned);
-
-    if (!Array.isArray(cards) || cards.length === 0) throw new Error('Could not parse flashcards from response.');
-
-    current = 0;
-    isFlipped = false;
-    knownCount = 0;
-    showCards();
-
-  } catch (err) {
-    showError(err.message || 'Something went wrong. Check your API key and try again.');
-  } finally {
-    document.getElementById('generate-btn').disabled = false;
-    document.getElementById('input-section').style.opacity = '1';
-    document.getElementById('loading').style.display = 'none';
-  }
-}
-
-function showCards() {
-  document.getElementById('input-section').style.display = 'none';
-  document.getElementById('cards-section').style.display = 'block';
-  renderCard();
-}
-
-function renderCard() {
-  const card = cards[current];
-  document.getElementById('question-text').textContent = card.question;
-  document.getElementById('answer-text').textContent = card.answer;
-
-  const fc = document.getElementById('flip-card');
-  fc.classList.remove('flipped');
-  isFlipped = false;
-
-  const pct = ((current + 1) / cards.length) * 100;
-  document.getElementById('progress-label').textContent = `${current + 1} / ${cards.length}`;
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('score-label').textContent = `${knownCount} known`;
-  document.getElementById('prev-btn').disabled = current === 0;
-  document.getElementById('next-btn').disabled = current === cards.length - 1;
-}
-
-function flipCard() {
-  const fc = document.getElementById('flip-card');
-  isFlipped = !isFlipped;
-  fc.classList.toggle('flipped', isFlipped);
-}
-
-function navigate(dir) {
-  const next = current + dir;
-  if (next < 0 || next >= cards.length) return;
-  current = next;
-  renderCard();
-}
-
-function markKnew() {
-  knownCount++;
-  document.getElementById('score-label').textContent = `${knownCount} known`;
-  if (current < cards.length - 1) navigate(1);
-}
-
-function restart() {
-  cards = [];
-  current = 0;
-  isFlipped = false;
-  knownCount = 0;
-  document.getElementById('cards-section').style.display = 'none';
-  document.getElementById('input-section').style.display = 'block';
-}
-
-function showError(msg) {
-  const box = document.getElementById('error-box');
-  box.textContent = msg;
-  box.style.display = 'block';
-}
-
-document.addEventListener('keydown', (e) => {
-  if (document.getElementById('cards-section').style.display === 'none') return;
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); flipCard(); }
-  if (e.key === 'ArrowLeft') navigate(-1);
-  if (e.key === 'ArrowRight') navigate(1);
-  if (e.key === 'k' || e.key === 'K') markKnew();
-});
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
